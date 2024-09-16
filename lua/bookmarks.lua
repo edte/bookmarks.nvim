@@ -5,11 +5,17 @@ local e = require("bookmarks.event")
 local l = require("bookmarks.list")
 local w = require("bookmarks.window")
 local data = require("bookmarks.data")
+local f = require("bookmarks.fzflua")
 local api = vim.api
 
 -- Check module telescope is exists.
 if pcall(require, "telescope") then
     require("telescope._extensions.bookmarks")
+end
+
+-- Check module fzflua is exists.
+if pcall(require, "fzf-lua") then
+    require("bookmarks.fzflua").setup()
 end
 
 local M = {}
@@ -24,6 +30,12 @@ end
 -- Add bookmark.
 function M.add_bookmarks(is_global)
     l.add_bookmark(vim.fn.line('.'), api.nvim_get_current_buf(), vim.fn.line("$"), is_global)
+end
+
+
+-- List bookmark by fzflua.
+function M.list_bookmarks_fzflua()
+    f.picker_func()
 end
 
 -- Open bookmarks window.

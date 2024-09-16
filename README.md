@@ -85,6 +85,8 @@ require("bookmarks.list").load{
     dependencies = { 'nvim-web-devicons' },
     config = function()
         require("bookmarks").setup()
+        -- or default support fzf-lua
+        -- require'bookmarks'.list_bookmarks_fzflua()
         require("telescope").load_extension("bookmarks")
     end
 }
@@ -158,13 +160,14 @@ require("bookmarks").setup({
 
 ## Global keymaps
 
-| Desc                              | Func                                     |
-| --------------------------------- | ---------------------------------------- |
-| Add local bookmarks               | require'bookmarks'.add_bookmarks(fasle)  |
-| Add global bookmarks              | require'bookmarks'.add_bookmarks(true)   |
-| Toggle bookmarks                  | require'bookmarks'.toggle_bookmarks()    |
-| Delete bookmark at virt text line | require'bookmarks.list'.delete_on_virt() |
-| Show bookmark desc                | require'bookmarks.list'.show_desc()      |
+| Desc                              | Func                                           |
+| --------------------------------- | ---------------------------------------------- |
+| Add local bookmarks               | require'bookmarks'.add_bookmarks(fasle)        |
+| Add global bookmarks              | require'bookmarks'.add_bookmarks(true)         |
+| Toggle bookmarks                  | require'bookmarks'.toggle_bookmarks()          |
+| Delete bookmark at virt text line | require'bookmarks.list'.delete_on_virt()       |
+| Show bookmark desc                | require'bookmarks.list'.show_desc()            |
+| List bookmark by fzflua           | require'bookmarks'.list_bookmarks_fzflua()     |
 
 
 ## Highlights
