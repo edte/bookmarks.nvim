@@ -1,15 +1,16 @@
-local fzf = require("fzf-lua")
-local bookmarks = require("bookmarks.data").bookmarks
-
 local M = {}
 
 
 function M.picker_func()
+    local bookmarks = require("bookmarks.data").bookmarks
+
     local list = {}
     for _, bookmark in pairs(bookmarks) do
         table.insert(list, bookmark.description)
     end
 
+
+    local fzf = require("fzf-lua")
     fzf.fzf_exec(list, {
         prompt = "Bookmarks> ",
         previewer = function()
