@@ -1,77 +1,27 @@
-require("bookmarks.split")
-
-local c = require("bookmarks.config")
-local e = require("bookmarks.event")
-local l = require("bookmarks.list")
-local w = require("bookmarks.window")
-local data = require("bookmarks.data")
-local f = require("bookmarks.fzflua")
-local api = vim.api
-
--- Check module telescope is exists.
-if pcall(require, "telescope") then
-    require("telescope._extensions.bookmarks")
-end
-
--- Check module fzflua is exists.
-if pcall(require, "fzf-lua") then
-    require("bookmarks.fzflua").setup()
-end
+local config = require("bookmarks.config")
+local event = require("bookmarks.event")
+local list = require("bookmarks.list")
+local window = require("bookmarks.window")
 
 local M = {}
 
-function M.setup(user_config)
-    c.setup(user_config)
-    l.setup()
-    e.setup()
-    w.setup()
-end
-
--- Add bookmark.
-function M.add_bookmarks(is_global)
-    l.add_bookmark(vim.fn.line('.'), api.nvim_get_current_buf(), vim.fn.line("$"), is_global)
-end
-
-
 -- List bookmark by fzflua.
-function M.list_bookmarks_fzflua()
-    f.picker_func()
-end
 
--- Open bookmarks window.
-function M.open_bookmarks()
-    data.last_win = vim.api.nvim_get_current_win()
-    data.last_buf = vim.api.nvim_get_current_buf()
-
-    -- open bookmarks
-    l.load_data()
-    w.open_bookmarks()
-    l.flush()
-end
-
--- Close bookmarks window.
-function M.close_bookmarks()
-    w.close_bookmarks()
-    l.restore()
-end
-
--- Toggle bookmarks window.
-function M.toggle_bookmarks()
-    if data.bufbw ~= nil and vim.api.nvim_win_is_valid(data.bufbw) then
-        M.close_bookmarks()
-    else
-        M.open_bookmarks()
+--  字符串扩展方法 split_b，用于将字符串按照指定的分隔符 sep 进行分割，并返回一个包含切割结果的表
+function string:split_b(sep)
+    local cuts = {}
+    for v in string.gmatch(self, "[^'" .. sep .. "']+") do
+        table.insert(cuts, v)
     end
+
+    return cuts
 end
 
--- Jump to the corresponding bookmark's location.
-function M.jump()
-    l.jump(vim.fn.line("."))
-end
-
--- Delete bookmarks.
-function M.delete()
-    l.delete(vim.fn.line('.'))
+function M.setup()
+    config.setup()
+    list.setup()
+    event.setup()
+    window.setup()
 end
 
 return M

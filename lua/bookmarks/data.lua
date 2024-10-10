@@ -8,7 +8,7 @@ local M = {
     tags = {},
     deleted_ids = {},                -- deleted ids
 
-    cwd = nil,
+    pwd = nil,
     data_filename = nil,
     loaded_data = false,
     data_dir = nil,

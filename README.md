@@ -62,42 +62,12 @@ require("bookmarks.list").load{
 
 **packer**
 
-```lua
-{
-    'crusj/bookmarks.nvim',
-    branch = 'main',
-    requires = { 'kyazdani42/nvim-web-devicons' },
-    config = function()
-        require("bookmarks").setup()
-       	require("telescope").load_extension("bookmarks")
-    end
-}
-```
 **lazy**
 
-```lua
-{
-    'crusj/bookmarks.nvim',
-    keys = {
-        { "<tab><tab>", mode = { "n" } },
-    },
-    branch = 'main',
-    dependencies = { 'nvim-web-devicons' },
-    config = function()
-        require("bookmarks").setup()
-        -- or default support fzf-lua
-        -- require'bookmarks'.list_bookmarks_fzflua()
-        require("telescope").load_extension("bookmarks")
-    end
-}
 
 
 ```
 
-## Telescope
-
-Command:
-`Telescope bookmarks`
 
 
 ## Usage
@@ -107,20 +77,11 @@ Command:
 ```lua
 require("bookmarks").setup({
     storage_dir = "",  -- Default path: vim.fn.stdpath("data").."/bookmarks,  if not the default directory, should be absolute path",
-    mappings_enabled = true, -- If the value is false, only valid for global keymaps: toggle、add、delete_on_virt、show_desc
+    mappings_enabled = true, -- If the value is false, only valid for global keymaps: 、add、delete_on_virt、show_desc
     keymap = {
-        toggle = "<tab><tab>", -- Toggle bookmarks(global keymap)
-        close = "q", -- close bookmarks (buf keymap)
         add = "\\z", -- Add bookmarks(global keymap)
-        add_global = "\\g" -- Add global bookmarks(global keymap), global bookmarks will appear in all projects. Identified with the symbol '󰯾'
-        jump = "<CR>", -- Jump from bookmarks(buf keymap)
-        delete = "dd", -- Delete bookmarks(buf keymap)
-        order = "<space><space>", -- Order bookmarks by frequency or updated_time(buf keymap)
         delete_on_virt = "\\dd", -- Delete bookmark at virt text line(global keymap)
         show_desc = "\\sd", -- show bookmark desc(global keymap)
-        focus_tags = "<c-j>",      -- focus tags window
-        focus_bookmarks = "<c-k>", -- focus bookmarks window
-        toogle_focus = "<S-Tab>", -- toggle window focus (tags-window <-> bookmarks-window)
     },
     width = 0.8, -- Bookmarks window width:  (0, 1]
     height = 0.7, -- Bookmarks window height: (0, 1]
@@ -162,9 +123,6 @@ require("bookmarks").setup({
 
 | Desc                              | Func                                           |
 | --------------------------------- | ---------------------------------------------- |
-| Add local bookmarks               | require'bookmarks'.add_bookmarks(fasle)        |
-| Add global bookmarks              | require'bookmarks'.add_bookmarks(true)         |
-| Toggle bookmarks                  | require'bookmarks'.toggle_bookmarks()          |
 | Delete bookmark at virt text line | require'bookmarks.list'.delete_on_virt()       |
 | Show bookmark desc                | require'bookmarks.list'.show_desc()            |
 | List bookmark by fzflua           | require'bookmarks'.list_bookmarks_fzflua()     |
