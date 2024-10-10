@@ -233,12 +233,19 @@ end
 -- 获取书签存储根目录
 function M.get_base_dir()
     -- git
-    local dot_git_path = vim.fn.finddir(".git", ".;")
-    local res = vim.fn.fnamemodify(dot_git_path, ":h")
-    if res == "" then
-        -- cwd
-        return vim.uv.cwd()
+    local res
+    if vim.fn.system([[git rev-parse --show-toplevel 2> /dev/null]]) ~= "" then
+        res = vim.fn.system("git rev-parse --show-toplevel")
     end
+
+    if res ~= "" and res ~= nil then
+        -- print(res)
+        return res
+    end
+
+    -- cwd
+    res = vim.uv.cwd()
+    -- print(res)
     return res
 end
 
@@ -252,6 +259,8 @@ function M.load_data()
         data.loaded_data = false
     end
 
+    -- print(currentPath)
+
     if data.loaded_data == true then
         return
     end
@@ -262,6 +271,7 @@ function M.load_data()
 
     -- local bookmarks
     local data_filename = string.format("%s%s%s", config.storage_dir, config.sep_path, currentPath)
+    -- print(data_filename)
     if vim.loop.fs_stat(data_filename) then
         dofile(data_filename)
     end
