@@ -11,10 +11,7 @@ function M.setup()
         return
     end
 
-    if config.mappings_enabled then
-        M.key_bind()
-    end
-
+    M.key_bind()
     M.autocmd()
 end
 

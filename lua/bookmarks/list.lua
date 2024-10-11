@@ -16,13 +16,9 @@ function M.add_bookmark()
     local line = vim.fn.line('.')
     local buf = api.nvim_get_current_buf()
     local rows = vim.fn.line("$")
-    local is_global = false
 
     --  Open the bookmark description input box.
     local title = "Input description:"
-    if is_global then
-        title = "Global Input description:"
-    end
     local bufs_pairs = w.open_add_win(title)
 
     -- Press the esc key to cancel add bookmark.
@@ -33,12 +29,12 @@ function M.add_bookmark()
 
     -- Press the enter key to confirm add bookmark.
     vim.keymap.set("i", "<CR>",
-        function() M.handle_add(line, bufs_pairs.pairs.buf, bufs_pairs.border_pairs.buf, buf, rows, is_global) end,
+        function() M.handle_add(line, bufs_pairs.pairs.buf, bufs_pairs.border_pairs.buf, buf, rows) end,
         { desc = "bookmarks confirm bookmarks", silent = true, noremap = true, buffer = bufs_pairs.pairs.buf }
     )
 end
 
-function M.handle_add(line, buf1, buf2, buf, rows, is_global)
+function M.handle_add(line, buf1, buf2, buf, rows)
     -- Get buf's filename.
     local filename = api.nvim_buf_get_name(buf)
     if filename == nil or filename == "" then
@@ -46,24 +42,27 @@ function M.handle_add(line, buf1, buf2, buf, rows, is_global)
     end
 
     local input_line = vim.fn.line(".")
+
     -- Get bookmark's description.
     local description = api.nvim_buf_get_lines(buf1, input_line - 1, input_line, false)[1] or ""
-    if description ~= "" then
-        local content = api.nvim_buf_get_lines(buf, line - 1, line, true)[1]
-        -- Save bookmark with description.
-        M.add(filename, line, md5.sumhexa(content),
-            description, rows, is_global)
-    end
+    print(description)
 
     -- Close description input box.
-    w.close_add_win(buf1, buf2)
-    m.set_marks(buf, M.get_buf_bookmark_lines(0))
-    vim.cmd("stopinsert")
-end
+    if description == "" then
+        w.close_add_win(buf1, buf2)
+        m.set_marks(buf, M.get_buf_bookmark_lines(0))
+        vim.cmd("stopinsert")
+        return
+    end
 
--- Save bookmark as lua code.
--- rows is the file's number..
-function M.add(filename, line, line_md5, description, rows, is_global)
+    local content = api.nvim_buf_get_lines(buf, line - 1, line, true)[1]
+
+    print(content)
+
+    -- Save bookmark with description.
+    -- Save bookmark as lua code.
+    -- rows is the file's number..
+
     local id = md5.sumhexa(string.format("%s:%s", filename, line))
     local now = os.time()
     local cuts = description:split_b(":")
@@ -88,9 +87,8 @@ function M.add(filename, line, line_md5, description, rows, is_global)
             description = description or "",
             updated_at = now,
             fre = 1,
-            rows = rows,         -- for fix
-            line_md5 = line_md5, -- for fix
-            is_global = is_global,
+            rows = rows,                     -- for fix
+            line_md5 = md5.sumhexa(content), -- for fix
             is_new = true,
         }
 
@@ -113,6 +111,11 @@ function M.add(filename, line, line_md5, description, rows, is_global)
             end
         end
     end
+
+    -- Close description input box.
+    w.close_add_win(buf1, buf2)
+    m.set_marks(buf, M.get_buf_bookmark_lines(0))
+    vim.cmd("stopinsert")
 end
 
 function M.get_buf_bookmark_lines(buf)
@@ -157,21 +160,10 @@ function M.persistent()
     local global_old_data = {}
     for id, bookmark in pairs(data.bookmarks) do
         local sub = M.fill_tpl(bookmark)
-        if bookmark["is_global"] ~= nil and bookmark["is_global"] == true then -- global bookmarks
-            if bookmark["is_new"] == true then
-                if global_str == "" then
-                    global_str = string.format("%s%s", global_str, sub)
-                else
-                    global_str = string.format("%s\n%s", global_str, sub)
-                end
-            end
-            global_old_data[id] = bookmark
+        if local_str == "" then
+            local_str = string.format("%s%s", local_str, sub)
         else
-            if local_str == "" then
-                local_str = string.format("%s%s", local_str, sub)
-            else
-                local_str = string.format("%s\n%s", local_str, sub)
-            end
+            local_str = string.format("%s\n%s", local_str, sub)
         end
     end
 
