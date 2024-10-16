@@ -215,13 +215,30 @@ end
 
 -- 获取书签存储根目录
 function M.get_base_dir()
-    local git_dir = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
-    if vim.v.shell_error ~= 0 then
-        -- 不是 Git 项目，返回当前工作目录
-        return vim.uv.cwd()
+    -- 递归查找 .git 目录
+    local function find_git_root(path)
+        local git_path = path .. "/.git"
+        local stat = vim.uv.fs_stat(git_path)
+        if stat and stat.type == "directory" then
+            return path
+        else
+            local parent_path = vim.fn.fnamemodify(path, ":h")
+            if parent_path == path then
+                return nil
+            end
+            return find_git_root(parent_path)
+        end
     end
-    -- print(git_dir)
-    return git_dir
+
+    local cwd = vim.uv.cwd()
+    local git_root = find_git_root(cwd)
+    if git_root then
+        -- print(git_root)
+        return git_root
+    else
+        -- print(cwd)
+        return cwd
+    end
 end
 
 -- 这个不能删，dotfile的时候要用
