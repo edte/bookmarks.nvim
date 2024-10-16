@@ -1,39 +1,14 @@
-local api = vim.api
 local M = {
     ns_id = api.nvim_create_namespace("bookmarks_marks"),
     marks = {},
+
+    virt_text = "", -- Show virt text at the end of bookmarked lines, if it is empty, use the description of bookmarks instead.
 }
 
 -- Add virtural text for bookmarks.
 function M.set_marks(buf, marks)
     local file_name = vim.api.nvim_buf_get_name(buf)
-    local pattern = require("config").data.virt_pattern
-    local ignore_pattern = require("config").data.virt_ignore_pattern
-    local cuts = file_name:split_b(".")
-
-    if #cuts > 1 then
-        local ext = cuts[#cuts]
-        local is_match = false
-        for _, p in ipairs(pattern) do
-            local suffix = string.sub(p, 3)
-            if p == '*' or suffix == '*' or suffix == ext then
-                is_match = true
-                break
-            end
-        end
-        for _, p in ipairs(ignore_pattern) do
-            local suffix = string.sub(p, 3)
-            if p == '*' or suffix == '*' or suffix == ext then
-                is_match = false
-                break
-            end
-        end
-        if is_match == false then
-            return
-        end
-    end
-
-    local text = require("config").data.virt_text
+    local text = M.virt_text
     if M.marks[file_name] == nil then
         M.marks[file_name] = {}
     end
@@ -42,7 +17,8 @@ function M.set_marks(buf, marks)
     for _, id in ipairs(M.marks[file_name]) do
         api.nvim_buf_del_extmark(buf, M.ns_id, id)
     end
-    M.delete_sign(buf)
+
+    vim.fn.sign_unplace("BookmarkSign", { buffer = buf })
 
     -- set new old ext
     for _, mark in ipairs(marks) do
@@ -62,21 +38,11 @@ function M.set_marks(buf, marks)
         })
         M.marks[file_name][#M.marks[file_name] + 1] = ext_id
 
-        if require("config").data.sign_icon ~= "" then
-            M.set_sign(buf, mark.line)
-        end
+        vim.fn.sign_place(0, "BookmarkSign", "BookmarkSign", buf, {
+            lnum = mark.line,
+        })
         ::continue::
     end
-end
-
-function M.set_sign(pb, line)
-    vim.fn.sign_place(0, "BookmarkSign", "BookmarkSign", pb, {
-        lnum = line,
-    })
-end
-
-function M.delete_sign(pb)
-    vim.fn.sign_unplace("BookmarkSign", { buffer = pb })
 end
 
 return M

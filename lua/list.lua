@@ -1,15 +1,16 @@
-local md5 = require("md5")
 local w = require("window")
 local data = require("data")
 local m = require("marks")
 local api = vim.api
-local config = require "config".get_data()
 
-local M = {}
-
+local M = {
+    storage_dir = "", -- default vim.fn.stdpath("data").."/bookmarks",
+}
 
 -- Restore bookmarks from disk file.
 function M.setup()
+    M.storage_dir = vim.fn.stdpath("data") .. "/bookmarks"
+
     -- vim.notify("load bookmarks data", "info")
     local currentPath = string.gsub(M.get_base_dir(), "/", "_")
     if data.pwd ~= nil and currentPath ~= data.pwd then -- maybe change session
@@ -24,12 +25,12 @@ function M.setup()
         return
     end
 
-    if not vim.loop.fs_stat(config.storage_dir) then
-        assert(os.execute("mkdir " .. config.storage_dir))
+    if not vim.loop.fs_stat(M.storage_dir) then
+        assert(os.execute("mkdir " .. M.storage_dir))
     end
 
     -- local bookmarks
-    local data_filename = string.format("%s%s%s", config.storage_dir, "/", currentPath):gsub("%c", "")
+    local data_filename = string.format("%s%s%s", M.storage_dir, "/", currentPath):gsub("%c", "")
     -- print(data_filename)
     if vim.loop.fs_stat(data_filename) then
         dofile(data_filename)
@@ -38,7 +39,7 @@ function M.setup()
 
     data.pwd = currentPath
     data.loaded_data = true -- mark
-    data.data_dir = config.storage_dir
+    data.data_dir = M.storage_dir
     data.data_filename = data_filename
 end
 
@@ -85,15 +86,11 @@ function M.handle_add(line, buf1, buf2, buf, rows)
         return
     end
 
-    local content = api.nvim_buf_get_lines(buf, line - 1, line, true)[1]
-
-    -- print(content)
-
     -- Save bookmark with description.
     -- Save bookmark as lua code.
     -- rows is the file's number..
 
-    local id = md5.sumhexa(string.format("%s:%s", filename, line))
+    local id = string.format("%s:%s", filename, line)
     local now = os.time()
 
     if data.bookmarks[id] ~= nil then --update description
@@ -104,13 +101,10 @@ function M.handle_add(line, buf1, buf2, buf, rows)
     else -- new
         data.bookmarks[id] = {
             filename = filename,
-            id = id,
             line = line,
+            rows = rows, -- for fix
             description = description or "",
             updated_at = now,
-            fre = 1,
-            rows = rows,                     -- for fix
-            line_md5 = md5.sumhexa(content), -- for fix
             is_new = true,
         }
 
@@ -227,7 +221,8 @@ end
 -- 这个不能删，dotfile的时候要用
 -- Dofile
 function M.load(item, is_persistent)
-    data.bookmarks[item.id] = item
+    local id = string.format("%s:%s", item.filename, item.line)
+    data.bookmarks[id] = item
     if is_persistent ~= nil and is_persistent == true then
         return
     end
@@ -235,7 +230,7 @@ function M.load(item, is_persistent)
     if data.bookmarks_groupby_filename[item.filename] == nil then
         data.bookmarks_groupby_filename[item.filename] = {}
     end
-    data.bookmarks_groupby_filename[item.filename][#data.bookmarks_groupby_filename[item.filename] + 1] = item.id
+    data.bookmarks_groupby_filename[item.filename][#data.bookmarks_groupby_filename[item.filename] + 1] = id
 end
 
 return M
