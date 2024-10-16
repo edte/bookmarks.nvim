@@ -1,10 +1,24 @@
 local w = require("window")
-local data = require("data")
-local m = require("marks")
 local api = vim.api
 
 local M = {
     storage_dir = "", -- default vim.fn.stdpath("data").."/bookmarks",
+
+    ns_id = api.nvim_create_namespace("bookmarks_marks"),
+    marks = {},
+
+    virt_text = "", -- Show virt text at the end of bookmarked lines, if it is empty, use the description of bookmarks instead.
+
+    data = {
+        bookmarks = {},                  -- filename description fre id line updated_at line_md5
+        bookmarks_groupby_filename = {}, -- group bookmarks by filename
+        pwd = nil,
+        data_filename = nil,
+        loaded_data = false,
+        data_dir = nil,
+        autocmd = 0,   -- cursormoved autocmd id
+        filename = "", -- current bookmarks filename
+    },
 }
 
 -- Restore bookmarks from disk file.
@@ -13,15 +27,15 @@ function M.setup()
 
     -- vim.notify("load bookmarks data", "info")
     local currentPath = string.gsub(M.get_base_dir(), "/", "_")
-    if data.pwd ~= nil and currentPath ~= data.pwd then -- maybe change session
+    if M.data.pwd ~= nil and currentPath ~= M.data.pwd then -- maybe change session
         M.persistent()
-        data.bookmarks = {}
-        data.loaded_data = false
+        M.data.bookmarks = {}
+        M.data.loaded_data = false
     end
 
     -- print(currentPath)
 
-    if data.loaded_data == true then
+    if M.data.loaded_data == true then
         return
     end
 
@@ -37,10 +51,10 @@ function M.setup()
     end
 
 
-    data.pwd = currentPath
-    data.loaded_data = true -- mark
-    data.data_dir = M.storage_dir
-    data.data_filename = data_filename
+    M.data.pwd = currentPath
+    M.data.loaded_data = true -- mark
+    M.data.data_dir = M.storage_dir
+    M.data.data_filename = data_filename
 end
 
 function M.add_bookmark()
@@ -81,7 +95,7 @@ function M.handle_add(line, buf1, buf2, buf, rows)
     -- Close description input box.
     if description == "" then
         w.close_add_win(buf1, buf2)
-        m.set_marks(buf, M.get_buf_bookmark_lines(0))
+        M.set_marks(buf, M.get_buf_bookmark_lines(0))
         vim.cmd("stopinsert")
         return
     end
@@ -93,13 +107,13 @@ function M.handle_add(line, buf1, buf2, buf, rows)
     local id = string.format("%s:%s", filename, line)
     local now = os.time()
 
-    if data.bookmarks[id] ~= nil then --update description
+    if M.data.bookmarks[id] ~= nil then --update description
         if description ~= nil then
-            data.bookmarks[id].description = description
-            data.bookmarks[id].updated_at = now
+            M.data.bookmarks[id].description = description
+            M.data.bookmarks[id].updated_at = now
         end
     else -- new
-        data.bookmarks[id] = {
+        M.data.bookmarks[id] = {
             filename = filename,
             line = line,
             rows = rows, -- for fix
@@ -108,23 +122,23 @@ function M.handle_add(line, buf1, buf2, buf, rows)
             is_new = true,
         }
 
-        if data.bookmarks_groupby_filename[filename] == nil then
-            data.bookmarks_groupby_filename[filename] = { id }
+        if M.data.bookmarks_groupby_filename[filename] == nil then
+            M.data.bookmarks_groupby_filename[filename] = { id }
         else
-            data.bookmarks_groupby_filename[filename][#data.bookmarks_groupby_filename[filename] + 1] = id
+            M.data.bookmarks_groupby_filename[filename][#M.data.bookmarks_groupby_filename[filename] + 1] = id
         end
     end
 
     -- Close description input box.
     w.close_add_win(buf1, buf2)
-    m.set_marks(buf, M.get_buf_bookmark_lines(0))
+    M.set_marks(buf, M.get_buf_bookmark_lines(0))
     vim.cmd("stopinsert")
 end
 
 function M.get_buf_bookmark_lines(buf)
     local filename = api.nvim_buf_get_name(buf)
     local lines = {}
-    local group = data.bookmarks_groupby_filename[filename]
+    local group = M.data.bookmarks_groupby_filename[filename]
 
     if group == nil then
         return lines
@@ -132,9 +146,9 @@ function M.get_buf_bookmark_lines(buf)
 
     local tmp = {}
     for _, each in pairs(group) do
-        if data.bookmarks[each] ~= nil and tmp[data.bookmarks[each].line] == nil then
-            lines[#lines + 1] = data.bookmarks[each]
-            tmp[data.bookmarks[each].line] = true
+        if M.data.bookmarks[each] ~= nil and tmp[M.data.bookmarks[each].line] == nil then
+            lines[#lines + 1] = M.data.bookmarks[each]
+            tmp[M.data.bookmarks[each].line] = true
         end
     end
 
@@ -146,10 +160,10 @@ function M.delete()
     local line = vim.fn.line(".")
     local file_name = api.nvim_buf_get_name(0)
     local buf = api.nvim_get_current_buf()
-    for k, v in pairs(data.bookmarks) do
+    for k, v in pairs(M.data.bookmarks) do
         if v.line == line and file_name == v.filename then
-            data.bookmarks[k] = nil
-            m.set_marks(buf, M.get_buf_bookmark_lines(0))
+            M.data.bookmarks[k] = nil
+            M.set_marks(buf, M.get_buf_bookmark_lines(0))
             return
         end
     end
@@ -158,7 +172,7 @@ end
 -- Write bookmarks into disk file for next load.
 function M.persistent()
     local local_str = ""
-    for id, bookmark in pairs(data.bookmarks) do
+    for id, bookmark in pairs(M.data.bookmarks) do
         local sub = M.fill_tpl(bookmark)
         if local_str == "" then
             local_str = string.format("%s%s", local_str, sub)
@@ -167,12 +181,12 @@ function M.persistent()
         end
     end
 
-    if data.data_filename == nil then -- lazy load,
+    if M.data.data_filename == nil then -- lazy load,
         return
     end
 
     -- 1.local bookmarks
-    local local_fd = assert(io.open(data.data_filename, "w"))
+    local local_fd = assert(io.open(M.data.data_filename, "w"))
     local_fd:write(local_str)
     local_fd:close()
 end
@@ -222,15 +236,113 @@ end
 -- Dofile
 function M.load(item, is_persistent)
     local id = string.format("%s:%s", item.filename, item.line)
-    data.bookmarks[id] = item
+    M.data.bookmarks[id] = item
     if is_persistent ~= nil and is_persistent == true then
         return
     end
 
-    if data.bookmarks_groupby_filename[item.filename] == nil then
-        data.bookmarks_groupby_filename[item.filename] = {}
+    if M.data.bookmarks_groupby_filename[item.filename] == nil then
+        M.data.bookmarks_groupby_filename[item.filename] = {}
     end
-    data.bookmarks_groupby_filename[item.filename][#data.bookmarks_groupby_filename[item.filename] + 1] = id
+    M.data.bookmarks_groupby_filename[item.filename][#M.data.bookmarks_groupby_filename[item.filename] + 1] = id
+end
+
+function M.jump()
+    local bookmarks = M.data.bookmarks
+
+    local list = {}
+    for _, bookmark in pairs(bookmarks) do
+        table.insert(list, bookmark.description)
+    end
+
+
+    local fzf = require("fzf-lua")
+    fzf.fzf_exec(list, {
+        prompt = "Bookmarks> ",
+        previewer = function()
+            local previewer = require("fzf-lua.previewer.builtin")
+            local path = require("fzf-lua.path")
+
+            -- https://github.com/ibhagwan/fzf-lua/wiki/Advanced#neovim-builtin-preview
+            -- Can this be any simpler? Do I need a custom previewer?
+            local MyPreviewer = previewer.buffer_or_file:extend()
+
+            function MyPreviewer:new(o, op, fzf_win)
+                MyPreviewer.super.new(self, o, op, fzf_win)
+                setmetatable(self, MyPreviewer)
+                return self
+            end
+
+            function MyPreviewer:parse_entry(entry_str)
+                if entry_str == "" then
+                    return {}
+                end
+                for _, bookmark in pairs(bookmarks) do
+                    if entry_str == bookmark.description then
+                        local entry = path.entry_to_file(bookmark.filename .. ":" .. bookmark.line, self.opts)
+                        return entry or {}
+                    end
+                end
+            end
+
+            return MyPreviewer
+        end,
+        actions = {
+            ["default"] = function(selected)
+                local entry = selected[1]
+                if not entry then
+                    return
+                end
+
+                for _, bookmark in pairs(bookmarks) do
+                    if entry == bookmark.description then
+                        vim.api.nvim_command("edit " .. bookmark.filename)
+                        vim.api.nvim_win_set_cursor(0, { bookmark.line, 0 })
+                    end
+                end
+            end,
+        },
+    })
+end
+
+-- Add virtural text for bookmarks.
+function M.set_marks(buf, marks)
+    local file_name = vim.api.nvim_buf_get_name(buf)
+    local text = M.virt_text
+    if M.marks[file_name] == nil then
+        M.marks[file_name] = {}
+    end
+
+    -- clear old ext
+    for _, id in ipairs(M.marks[file_name]) do
+        api.nvim_buf_del_extmark(buf, M.ns_id, id)
+    end
+
+    vim.fn.sign_unplace("BookmarkSign", { buffer = buf })
+
+    -- set new old ext
+    for _, mark in ipairs(marks) do
+        if mark.line > vim.fn.line("$") then
+            goto continue
+        end
+
+        local virt_text = text
+        if virt_text == "" then
+            virt_text = mark.description
+        end
+        local ext_id = api.nvim_buf_set_extmark(buf, M.ns_id, mark.line - 1, -1, {
+            virt_text = { { virt_text, "bookmarks_virt_text_hl" } },
+            virt_text_pos = "eol",
+            hl_group = "bookmarks_virt_text_hl",
+            hl_mode = "combine"
+        })
+        M.marks[file_name][#M.marks[file_name] + 1] = ext_id
+
+        vim.fn.sign_place(0, "BookmarkSign", "BookmarkSign", buf, {
+            lnum = mark.line,
+        })
+        ::continue::
+    end
 end
 
 return M
