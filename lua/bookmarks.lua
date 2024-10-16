@@ -1,5 +1,4 @@
 local list = require("list")
-local window = require("window")
 
 local M = {}
 
@@ -45,7 +44,6 @@ function M.setup()
     M.key_bind()
     M.autocmd()
     list.setup()
-    window.setup()
 end
 
 return M
