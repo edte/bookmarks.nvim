@@ -32,7 +32,7 @@ local border_chars_types = {
 local border_chars = {}
 
 function M.setup()
-    config = require("bookmarks.config").get_data()
+    config = require("config").get_data()
     if config == nil then
         return
     end

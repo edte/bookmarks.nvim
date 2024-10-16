@@ -1,5 +1,5 @@
-local md5 = require("bookmarks.md5")
-local data = require("bookmarks.data")
+local md5 = require("md5")
+local data = require("data")
 local api = vim.api
 
 local function fix_bookmarks()

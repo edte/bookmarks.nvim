@@ -1,7 +1,7 @@
-local config = require("bookmarks.config")
-local event = require("bookmarks.event")
-local list = require("bookmarks.list")
-local window = require("bookmarks.window")
+local config = require("config")
+local event = require("event")
+local list = require("list")
+local window = require("window")
 
 local M = {}
 

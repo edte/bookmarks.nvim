@@ -1,4 +1,4 @@
-local float = require("bookmarks.float")
+local float = require("float")
 local api = vim.api
 
 local M = {}
@@ -48,7 +48,7 @@ end)()
 
 
 function M.setup()
-    config = require("bookmarks.config").get_data()
+    config = require("config").get_data()
     vim.cmd(string.format("highlight hl_bookmarks_csl %s", config.hl.cursorline))
     float.setup()
     focus_manager.register("bookmarks")

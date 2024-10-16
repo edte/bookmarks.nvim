@@ -2,7 +2,7 @@ local M = {}
 
 
 function M.picker_func()
-    local bookmarks = require("bookmarks.data").bookmarks
+    local bookmarks = require("data").bookmarks
 
     local list = {}
     for _, bookmark in pairs(bookmarks) do

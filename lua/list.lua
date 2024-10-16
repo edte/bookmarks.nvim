@@ -1,9 +1,9 @@
-local md5 = require("bookmarks.md5")
-local w = require("bookmarks.window")
-local data = require("bookmarks.data")
-local m = require("bookmarks.marks")
+local md5 = require("md5")
+local w = require("window")
+local data = require("data")
+local m = require("marks")
 local api = vim.api
-local config = require "bookmarks.config".get_data()
+local config = require "config".get_data()
 
 local M = {}
 
@@ -29,7 +29,7 @@ function M.setup()
     end
 
     -- local bookmarks
-    local data_filename = string.format("%s%s%s", config.storage_dir, config.sep_path, currentPath)
+    local data_filename = string.format("%s%s%s", config.storage_dir, "/", currentPath):gsub("%c", "")
     -- print(data_filename)
     if vim.loop.fs_stat(data_filename) then
         dofile(data_filename)
@@ -185,7 +185,7 @@ end
 
 function M.fill_tpl(bookmark)
     local tpl = [[
-require("bookmarks.list").load{
+require("list").load{
 	_
 }]]
     local sub = ""
@@ -197,10 +197,6 @@ require("bookmarks.list").load{
             if type(v) == "number" or type(v) == "boolean" then
                 sub = sub .. string.format("%s = %s,", k, v)
             else
-                -- issue #37
-                if config.sep_path == "\\" and k == "filename" then
-                    v = string.gsub(v, "[\\]", "\\\\")
-                end
                 sub = sub .. string.format("%s = \"%s\",", k, v)
             end
         end

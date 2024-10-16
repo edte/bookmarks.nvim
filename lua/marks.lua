@@ -7,8 +7,8 @@ local M = {
 -- Add virtural text for bookmarks.
 function M.set_marks(buf, marks)
     local file_name = vim.api.nvim_buf_get_name(buf)
-    local pattern = require("bookmarks.config").data.virt_pattern
-    local ignore_pattern = require("bookmarks.config").data.virt_ignore_pattern
+    local pattern = require("config").data.virt_pattern
+    local ignore_pattern = require("config").data.virt_ignore_pattern
     local cuts = file_name:split_b(".")
 
     if #cuts > 1 then
@@ -33,7 +33,7 @@ function M.set_marks(buf, marks)
         end
     end
 
-    local text = require("bookmarks.config").data.virt_text
+    local text = require("config").data.virt_text
     if M.marks[file_name] == nil then
         M.marks[file_name] = {}
     end
@@ -62,7 +62,7 @@ function M.set_marks(buf, marks)
         })
         M.marks[file_name][#M.marks[file_name] + 1] = ext_id
 
-        if require("bookmarks.config").data.sign_icon ~= "" then
+        if require("config").data.sign_icon ~= "" then
             M.set_sign(buf, mark.line)
         end
         ::continue::
