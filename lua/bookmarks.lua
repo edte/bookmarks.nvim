@@ -5,7 +5,6 @@ local window = require("bookmarks.window")
 
 local M = {}
 
--- List bookmark by fzflua.
 
 --  字符串扩展方法 split_b，用于将字符串按照指定的分隔符 sep 进行分割，并返回一个包含切割结果的表
 function string:split_b(sep)

@@ -3,13 +3,43 @@ local w = require("bookmarks.window")
 local data = require("bookmarks.data")
 local m = require("bookmarks.marks")
 local api = vim.api
-local config
+local config = require "bookmarks.config".get_data()
 
 local M = {}
 
+
+-- Restore bookmarks from disk file.
 function M.setup()
-    config = require "bookmarks.config".get_data()
-    M.load_data()
+    -- vim.notify("load bookmarks data", "info")
+    local currentPath = string.gsub(M.get_base_dir(), "/", "_")
+    if data.pwd ~= nil and currentPath ~= data.pwd then -- maybe change session
+        M.persistent()
+        data.bookmarks = {}
+        data.loaded_data = false
+    end
+
+    -- print(currentPath)
+
+    if data.loaded_data == true then
+        return
+    end
+
+    if not vim.loop.fs_stat(config.storage_dir) then
+        assert(os.execute("mkdir " .. config.storage_dir))
+    end
+
+    -- local bookmarks
+    local data_filename = string.format("%s%s%s", config.storage_dir, config.sep_path, currentPath)
+    -- print(data_filename)
+    if vim.loop.fs_stat(data_filename) then
+        dofile(data_filename)
+    end
+
+
+    data.pwd = currentPath
+    data.loaded_data = true -- mark
+    data.data_dir = config.storage_dir
+    data.data_filename = data_filename
 end
 
 function M.add_bookmark()
@@ -45,7 +75,7 @@ function M.handle_add(line, buf1, buf2, buf, rows)
 
     -- Get bookmark's description.
     local description = api.nvim_buf_get_lines(buf1, input_line - 1, input_line, false)[1] or ""
-    print(description)
+    -- print(description)
 
     -- Close description input box.
     if description == "" then
@@ -57,7 +87,7 @@ function M.handle_add(line, buf1, buf2, buf, rows)
 
     local content = api.nvim_buf_get_lines(buf, line - 1, line, true)[1]
 
-    print(content)
+    -- print(content)
 
     -- Save bookmark with description.
     -- Save bookmark as lua code.
@@ -65,24 +95,16 @@ function M.handle_add(line, buf1, buf2, buf, rows)
 
     local id = md5.sumhexa(string.format("%s:%s", filename, line))
     local now = os.time()
-    local cuts = description:split_b(":")
-    local tags = ""
-    if #cuts > 1 then
-        tags = cuts[1]
-        description = string.sub(description, #tags + 2)
-    end
 
     if data.bookmarks[id] ~= nil then --update description
         if description ~= nil then
             data.bookmarks[id].description = description
             data.bookmarks[id].updated_at = now
-            data.bookmarks[id].tags = tags
         end
     else -- new
         data.bookmarks[id] = {
             filename = filename,
             id = id,
-            tags = tags,
             line = line,
             description = description or "",
             updated_at = now,
@@ -96,19 +118,6 @@ function M.handle_add(line, buf1, buf2, buf, rows)
             data.bookmarks_groupby_filename[filename] = { id }
         else
             data.bookmarks_groupby_filename[filename][#data.bookmarks_groupby_filename[filename] + 1] = id
-        end
-
-        if data.bookmarks_groupby_tags["ALL"] == nil then
-            data.bookmarks_groupby_tags["ALL"] = {}
-        end
-        data.bookmarks_groupby_tags["ALL"][#data.bookmarks_groupby_tags["ALL"] + 1] = id
-
-        if tags ~= "" then
-            if data.bookmarks_groupby_tags[tags] == nil then
-                data.bookmarks_groupby_tags[tags] = { id }
-            else
-                data.bookmarks_groupby_tags[tags][#data.bookmarks_groupby_tags[tags] + 1] = id
-            end
         end
     end
 
@@ -146,7 +155,6 @@ function M.delete()
     for k, v in pairs(data.bookmarks) do
         if v.line == line and file_name == v.filename then
             data.bookmarks[k] = nil
-            w.regroup_tags(v.tags)
             m.set_marks(buf, M.get_buf_bookmark_lines(0))
             return
         end
@@ -156,8 +164,6 @@ end
 -- Write bookmarks into disk file for next load.
 function M.persistent()
     local local_str = ""
-    local global_str = ""
-    local global_old_data = {}
     for id, bookmark in pairs(data.bookmarks) do
         local sub = M.fill_tpl(bookmark)
         if local_str == "" then
@@ -175,25 +181,6 @@ function M.persistent()
     local local_fd = assert(io.open(data.data_filename, "w"))
     local_fd:write(local_str)
     local_fd:close()
-
-    -- 2.global bookmarks
-    local global_file_name = config.storage_dir .. config.sep_path .. "bookmarks_global"
-    if vim.loop.fs_stat(global_file_name) then
-        data.bookmarks = {}
-        dofile(global_file_name)
-        -- combine
-        for id, bookmark in pairs(data.bookmarks) do
-            if global_old_data[id] ~= nil then
-                global_str = string.format("%s\n%s", global_str, M.fill_tpl(global_old_data[id]))
-            elseif data.deleted_ids[id] == nil then
-                global_str = string.format("%s\n%s", global_str, M.fill_tpl(bookmark)) -- new
-            end
-        end
-    end
-
-    local global_fd = assert(io.open(global_file_name, "w"))
-    global_fd:write(global_str)
-    global_fd:close()
 end
 
 function M.fill_tpl(bookmark)
@@ -241,45 +228,6 @@ function M.get_base_dir()
     return res
 end
 
--- Restore bookmarks from disk file.
-function M.load_data()
-    -- vim.notify("load bookmarks data", "info")
-    local currentPath = string.gsub(M.get_base_dir(), "/", "_")
-    if data.pwd ~= nil and currentPath ~= data.pwd then -- maybe change session
-        M.persistent()
-        data.bookmarks = {}
-        data.loaded_data = false
-    end
-
-    -- print(currentPath)
-
-    if data.loaded_data == true then
-        return
-    end
-
-    if not vim.loop.fs_stat(config.storage_dir) then
-        assert(os.execute("mkdir " .. config.storage_dir))
-    end
-
-    -- local bookmarks
-    local data_filename = string.format("%s%s%s", config.storage_dir, config.sep_path, currentPath)
-    -- print(data_filename)
-    if vim.loop.fs_stat(data_filename) then
-        dofile(data_filename)
-    end
-
-    -- global bookmarks
-    local global_data_filename = config.storage_dir .. config.sep_path .. "bookmarks_global"
-    if vim.loop.fs_stat(global_data_filename) then
-        dofile(global_data_filename)
-    end
-
-    data.pwd = currentPath
-    data.loaded_data = true -- mark
-    data.data_dir = config.storage_dir
-    data.data_filename = data_filename
-end
-
 -- 这个不能删，dotfile的时候要用
 -- Dofile
 function M.load(item, is_persistent)
@@ -292,18 +240,6 @@ function M.load(item, is_persistent)
         data.bookmarks_groupby_filename[item.filename] = {}
     end
     data.bookmarks_groupby_filename[item.filename][#data.bookmarks_groupby_filename[item.filename] + 1] = item.id
-
-    if data.bookmarks_groupby_tags["ALL"] == nil then
-        data.bookmarks_groupby_tags["ALL"] = {}
-    end
-    data.bookmarks_groupby_tags["ALL"][#data.bookmarks_groupby_tags["ALL"] + 1] = item.id
-
-    if item.tags ~= nil and item.tags ~= "" then
-        if data.bookmarks_groupby_tags[item.tags] == nil then
-            data.bookmarks_groupby_tags[item.tags] = {}
-        end
-        data.bookmarks_groupby_tags[item.tags][#data.bookmarks_groupby_tags[item.tags] + 1] = item.id
-    end
 end
 
 return M

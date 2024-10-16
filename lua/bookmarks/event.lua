@@ -15,7 +15,6 @@ function M.setup()
     M.autocmd()
 end
 
--- global keymaps.
 function M.key_bind()
     -- check nil
     if config == nil then

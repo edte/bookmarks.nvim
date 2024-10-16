@@ -17,8 +17,7 @@ local M = {
             border = "TelescopeBorder",                                                     -- border highlight
             cursorline = "guibg=Gray guifg=White",                                          -- cursorline highlight
         },
-        sep_path = "/",
-        datetime_format = "%Y-%m-%d %H:%M:%S", -- os.date
+        datetime_format = "%Y-%m-%d %H:%M:%S",                                              -- os.date
     }
 }
 

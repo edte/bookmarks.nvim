@@ -1,5 +1,4 @@
 local float = require("bookmarks.float")
-local data = require("bookmarks.data")
 local api = vim.api
 
 local M = {}
@@ -52,24 +51,7 @@ function M.setup()
     config = require("bookmarks.config").get_data()
     vim.cmd(string.format("highlight hl_bookmarks_csl %s", config.hl.cursorline))
     float.setup()
-    focus_manager.register("tags")
     focus_manager.register("bookmarks")
-end
-
-function M.regroup_tags(tags)
-    if tags == nil or tags == "" then
-        return
-    end
-    local new_tags_group = {}
-    local all_tags_group = {}
-    for _, each in pairs(data.bookmarks) do
-        all_tags_group[#all_tags_group + 1] = each.id
-        if each.tags == tags then
-            new_tags_group[#new_tags_group + 1] = each.id
-        end
-    end
-    data.bookmarks_groupby_tags[tags] = new_tags_group
-    data.bookmarks_groupby_tags["ALL"] = all_tags_group
 end
 
 function M.open_add_win(title)
