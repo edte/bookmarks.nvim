@@ -6,7 +6,7 @@ show mark on sign bar
 
 **show bookmark**
 ![show](https://github.com/user-attachments/assets/c121cb20-1657-4dcb-97f5-f3c516779a62)
-## jump bookmark**
+**jump bookmark**
 ![jump](https://github.com/user-attachments/assets/1fd03626-8dd8-43ca-b82f-c6ca8338aa56)
 
 
