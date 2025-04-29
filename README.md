@@ -35,9 +35,9 @@ show mark on sign bar
 
 
 ## 🚀 Usage
-`mm` to add bookmark
-`md` to delete bookmark
-`mo` to jump bookmark
+- `mm` to add bookmark
+- `md` to delete bookmark
+- `mo` to jump bookmark
 
 ## 📄 Thanks
 - [bookmarks.nvim](https://github.com/crusj/bookmarks.nvim)
