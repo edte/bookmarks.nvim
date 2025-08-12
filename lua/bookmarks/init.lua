@@ -259,7 +259,11 @@ function M.open_add_win(title)
     local border_pairs = M.create_border(options)
     vim.api.nvim_set_current_win(pairs.win)
     vim.api.nvim_win_set_option(pairs.win, 'winhighlight', 'Normal:normal')
+    -- Configure input buffer to avoid interference from completion plugins
     vim.api.nvim_buf_set_option(pairs.buf, 'filetype', 'bookmarks_input')
+    vim.api.nvim_buf_set_option(pairs.buf, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(pairs.buf, 'bufhidden', 'wipe')
+    vim.api.nvim_buf_set_option(pairs.buf, 'swapfile', false)
     cmd("startinsert")
 
     return {
@@ -412,16 +416,26 @@ function M.add_bookmark()
     local bufs_pairs = M.open_add_win(title)
 
     -- Press the esc key to cancel add bookmark.
-    vim.keymap.set("n", "<ESC>",
-        function() M.close_add_win(bufs_pairs.pairs.buf, bufs_pairs.border_pairs.buf) end,
+    vim.keymap.set({"i", "n"}, "<ESC>",
+        function() M.close_add_win(bufs_pairs.pairs.buf, bufs_pairs.border_pairs.buf)
+            cmd("stopinsert")
+        end,
         { desc = "bookmarks close add win", silent = true, buffer = bufs_pairs.pairs.buf }
     )
 
     -- Press the enter key to confirm add bookmark.
-    vim.keymap.set("i", "<CR>",
-        function() M.handle_add(line, bufs_pairs.pairs.buf, bufs_pairs.border_pairs.buf, buf, rows) end,
+    local confirm = function()
+        M.handle_add(line, bufs_pairs.pairs.buf, bufs_pairs.border_pairs.buf, buf, rows)
+    end
+    vim.keymap.set({"i", "n"}, "<CR>", confirm,
         { desc = "bookmarks confirm bookmarks", silent = true, noremap = true, buffer = bufs_pairs.pairs.buf }
     )
+    -- In case other plugins remap <CR> on InsertEnter, set again on next tick
+    vim.schedule(function()
+        vim.keymap.set({"i", "n"}, "<CR>", confirm,
+            { desc = "bookmarks confirm bookmarks", silent = true, noremap = true, buffer = bufs_pairs.pairs.buf }
+        )
+    end)
 end
 
 -- Delete bookmark.
