@@ -350,6 +350,46 @@ function M.get_buf_bookmark_lines(buf)
     return lines
 end
 
+function M.remove_bookmark(id)
+    local bookmark = M.data.bookmarks[id]
+    if not bookmark then
+        return
+    end
+
+    local group = M.data.bookmarks_groupby_filename[bookmark.filename]
+    if group then
+        for index, value in pairs(group) do
+            local group_id = value
+            if type(value) == "table" then
+                group_id = value.id
+            end
+
+            if group_id == id then
+                table.remove(group, index)
+                break
+            end
+        end
+
+        if vim.tbl_isempty(group) then
+            M.data.bookmarks_groupby_filename[bookmark.filename] = nil
+        end
+    end
+
+    M.data.bookmarks[id] = nil
+end
+
+function M.find_bookmark_id(item)
+    if item.idx ~= nil and M.data.bookmarks[item.idx] ~= nil then
+        return item.idx
+    end
+
+    for id, bookmark in pairs(M.data.bookmarks) do
+        if bookmark.filename == item.file and bookmark.line == item.line and bookmark.description == item.text then
+            return id
+        end
+    end
+end
+
 function M.add_bookmark()
     function M.handle_add(line, buf1, buf2, buf, rows)
         -- Get buf's filename.
@@ -445,7 +485,7 @@ function M.delete_bookmark()
     local buf = vim.api.nvim_get_current_buf()
     for k, v in pairs(M.data.bookmarks) do
         if v.line == line and file_name == v.filename then
-            M.data.bookmarks[k] = nil
+            M.remove_bookmark(k)
             M.set_marks(buf, M.get_buf_bookmark_lines(0))
             return
         end
@@ -472,9 +512,41 @@ function M.jump_bookmark()
             return ret
         end,
         confirm = function(picker, item)
+            local bookmark_id = M.find_bookmark_id(item)
+
+            if vim.fn.filereadable(item.file) == 0 then
+                if bookmark_id ~= nil then
+                    M.remove_bookmark(bookmark_id)
+                    M.save_bookmarks()
+                end
+                vim.notify("bookmark file not found: " .. item.file, vim.log.levels.WARN)
+                picker:close()
+                return
+            end
+
             picker:close()
-            vim.api.nvim_command("edit " .. item.file)
-            vim.api.nvim_win_set_cursor(0, { item.line, 0 })
+            local ok, err = pcall(vim.api.nvim_command, "edit " .. vim.fn.fnameescape(item.file))
+            if not ok then
+                vim.notify(err, vim.log.levels.ERROR)
+                return
+            end
+
+            local last_line = vim.api.nvim_buf_line_count(0)
+            local target_line = math.max(item.line or 1, 1)
+
+            if target_line > math.max(last_line, 1) then
+                if bookmark_id ~= nil then
+                    M.remove_bookmark(bookmark_id)
+                    M.save_bookmarks()
+                end
+                vim.notify(
+                    "bookmark line out of range: " .. item.file .. ":" .. target_line,
+                    vim.log.levels.WARN
+                )
+                return
+            end
+
+            vim.api.nvim_win_set_cursor(0, { target_line, 0 })
             vim.api.nvim_feedkeys("zz", "n", false)
         end,
     })
@@ -561,6 +633,7 @@ function M.load_bookmarks()
     if M.data.pwd ~= nil and currentPath ~= M.data.pwd then -- maybe change session
         M.save_bookmarks()
         M.data.bookmarks = {}
+        M.data.bookmarks_groupby_filename = {}
         M.data.loaded_data = false
     end
 
@@ -604,8 +677,7 @@ function M.load_bookmarks()
         if M.data.bookmarks_groupby_filename[item.filename] == nil then
             M.data.bookmarks_groupby_filename[item.filename] = {}
         end
-        M.data.bookmarks_groupby_filename[item.filename][#M.data.bookmarks_groupby_filename[item.filename] + 1] = item
-            .id
+        M.data.bookmarks_groupby_filename[item.filename][#M.data.bookmarks_groupby_filename[item.filename] + 1] = item.id
     end
 end
 
